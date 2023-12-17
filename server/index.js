@@ -1,99 +1,93 @@
-import express from 'express';
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import path from 'path';
-import Link from './models/link.js';
+
+
+import express from "express";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
 dotenv.config();
+import path from 'path';
+
+import Link from './models/Link.js';
 
 const app = express();
-
 app.use(express.json());
 
 const __dirname = path.resolve();
 
-const connectToDB = async () => {
-    const connection = await mongoose.connect(process.env.MONGODB_URI)
-    if (connection) {
-        console.log("Successfully connect to MongoDB");
+const connectDB = async ()=>{
+    const conn = await mongoose.connect(process.env.MONGODB_URI);
+    if(conn){
+        console.log('MongoDB is connected');
     }
-}
-connectToDB();
+};
+connectDB();
 
-app.post('/api/link', async (req , res) => {
-    const {url , slug} = req.body;
+app.post('/link',async (req,res)=>{
+    const {url, slug} = req.body;
 
-    const randomSlug = Math.random().toString(36).substring(2,7)
-
-    const link = new Link({
-        url : url,
-        slug : slug || randomSlug
+    const randomSlug = Math.random().toString(36).substring(2, 7);
+    
+    const linkObj = new Link({
+        url:url,
+        slug:slug || randomSlug,
     })
-
     try{
-        const savelinkd = await link.save()
-        return res.json({
-            success : true,
-            data : {
-                shortUrl : `${process.env.BASE_URL}/${savelinkd.slug}`
+        const savedLink = await linkObj.save();
+
+       return res.json({
+            success:true,
+            data:{
+                shortUrl: `${process.env.BASE_URL}/${savedLink.slug}`
             },
-            message : "Link save successfully"
+            message:"successfully created link"
         })
     }
+   catch(err){
+    res.json({
+        success:false,
+        message:err.message
+    })
+   }
+   
+})
 
-    catch(e){
+app.get('/:slug',async (req,res)=>{
+    const {slug} = req.params;
+
+    const link = await Link.findOne({slug:slug});
+
+    if(!link){
         return res.json({
-            success : false,
-            message : e.message
+            success:false,
+            message:"link not found"
         })
-    }
-
+    } 
+    
+    await Link.updateOne({slug: slug}, {$set: {clicks: link.clicks +1
+    }})
+    
+    res.redirect(link.url);
 })
 
-app.get('/:slug', async (req , res) => {
+app.get('/api/links',async(req,res)=>{
+    const links = await Link.find();
 
- const {slug} = req.params;
-
- if(!link)
- {
-    return res.json({
-        success : false,
-        message : "Link not Found"
-    })
- }
-
- const link = await Link.findOne({slug : slug})
-
- await Link.updateOne({slug:slug} ,{$set: {clicks:link.clicks + 1}})
-
- 
-
- res.redirect(link.url)
-
- 
-})
-
-app.get('/api/links', async (req ,res) => {
-    const links = await Link.find()
-
-    return res.json({
-        success: true,
-        data: links,
-        message: "Successfully fetch all links"
+    res.json({
+        success:true,
+        data:links,
+        message:'Links fetch successfully'
     })
 })
 
-
-if(process.env.NODE_ENV === 'production')
-{
-    app.use(express.static(path.join(__dirname , '..','client' , 'build')))
-
-    app.get('*' , (req , res) => {
-        res.sendFile(path.join(__dirname , '..','client' , 'index.html'))
-    })
-}
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(__dirname, '..', 'client', 'build')));
+  
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, '..', 'client', 'build', 'index.html'))
+    });
+  }
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT , () => {
-    console.log(`server is running on port ${PORT}`)
+app.listen(PORT, ()=>{
+    console.log(`server is running on ${PORT}`);
 })

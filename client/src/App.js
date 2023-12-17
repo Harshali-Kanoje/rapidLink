@@ -12,7 +12,7 @@ const App = () => {
   const [links, setLinks] = useState([])
 
   const generateUrl = async () => {
-    const response = await axios.post('/api/link', {
+    const response = await axios.post('/link', {
       url,
       slug
     })

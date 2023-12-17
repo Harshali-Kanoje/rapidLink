@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import path from 'path';
 
-import Link from './models/Link.js';
+import Link from './models/link.js';
 
 const app = express();
 app.use(express.json());
